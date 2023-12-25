@@ -47,6 +47,7 @@ class TestSaleOrderInheritance(TransactionCase):
             'product_id': self.product_1.id,
             'product_uom_qty': 1,
             'price_unit': 100,
+            # No prekes_zenklas added to this Sale Order Line
         })
 
         self.sale_order.state = 'sale'
