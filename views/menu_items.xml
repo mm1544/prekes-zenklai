@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Menuitem to list all prekes_zenklas objects under Sales/Configuration/Sales Orders -->
+    <menuitem id="menu_prekes_zenklai"
+              name="Prekes Zenklai"
+              action="action_prekes_zenklas"
+              parent="sale.menu_sales_config"
+    />
+</odoo>
