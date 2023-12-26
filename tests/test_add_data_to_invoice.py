@@ -26,6 +26,20 @@ class TestSaleOrderInheritance(TransactionCase):
             'sale_ok': True,
             'default_code': 'Product Code 2',
         })
+        self.product_3 = self.env['product.product'].create({
+            'name': 'Test Product 3',
+            'type': 'consu',
+            'invoice_policy': 'order',
+            'sale_ok': True,
+            'default_code': 'Product Code 3',
+        })
+        self.product_4 = self.env['product.product'].create({
+            'name': 'Test Product 4',
+            'type': 'consu',
+            'invoice_policy': 'order',
+            'sale_ok': True,
+            'default_code': 'Product Code 3',
+        })
 
         self.prekes_zenklas_1 = self.env['prekes.zenklas'].create({'name': 'Zenklas 1'})
         self.prekes_zenklas_2 = self.env['prekes.zenklas'].create({'name': 'Zenklas 2'})
@@ -269,6 +283,108 @@ class TestSaleOrderInheritance(TransactionCase):
                          'Expected narration value added to Invoice is "<p>Product Code 1 - (Zenklas 1, Zenklas 2, Zenklas 3, Zenklas 4, Zenklas 5, Zenklas 6)<br><br>Product Code 2 - (Zenklas 1, Zenklas 2, Zenklas 3, Zenklas 4, Zenklas 5, Zenklas 6, Zenklas 7, Zenklas 8)</p>"')
 
         _logger.info("Test test_create_invoices_5 passed.")
+
+    def test_create_invoices_6(self):
+        """
+        Test _create_invoices.
+
+        Creating 6 Sale Order Lines for Sale Order:
+        Sale Order Line #1. Added: Product 1, Zenklas 1, Zenklas 2, Zenklas 3
+        Sale Order Line #2. Added: Product 2,
+        Sale Order Line #3. Added: Product 3, Zenklas 1, Zenklas 4, Zenklas 5
+        Sale Order Line #4. Added: Product 4, Zenklas 6, Zenklas 8
+        Sale Order Line #5. Added: Product 1, Zenklas 1, Zenklas 2
+        Sale Order Line #6. Added: Product 2, Zenklas 4, Zenklas 6, Zenklas 7
+
+        Expected 'narration' field on Invoice:
+        "
+        Product Code 1 - (Zenklas 1, Zenklas 2, Zenklas 3)
+
+        Product Code 3 - (Zenklas 1, Zenklas 4, Zenklas 5)
+
+        Product Code 4 - (Zenklas 6, Zenklas 8)
+
+        Product Code 2 - (Zenklas 4, Zenklas 6, Zenklas 7)
+        "
+        """
+
+        sale_order_line_1 = self.env['sale.order.line'].create({
+            'order_id': self.sale_order.id,
+            'product_id': self.product_1.id,
+            'product_uom_qty': 1,
+            'price_unit': 100,
+            'prekes_zenklai_ids': [
+                (6, 0, [self.prekes_zenklas_1.id, self.prekes_zenklas_2.id, self.prekes_zenklas_3.id])]
+        })
+
+        sale_order_line_2 = self.env['sale.order.line'].create({
+            'order_id': self.sale_order.id,
+            'product_id': self.product_2.id,
+            'product_uom_qty': 1,
+            'price_unit': 100,
+        })
+
+        sale_order_line_3 = self.env['sale.order.line'].create({
+            'order_id': self.sale_order.id,
+            'product_id': self.product_3.id,
+            'product_uom_qty': 1,
+            'price_unit': 100,
+            'prekes_zenklai_ids': [
+                (6, 0, [self.prekes_zenklas_1.id, self.prekes_zenklas_4.id, self.prekes_zenklas_5.id])]
+        })
+
+        sale_order_line_4 = self.env['sale.order.line'].create({
+            'order_id': self.sale_order.id,
+            'product_id': self.product_4.id,
+            'product_uom_qty': 1,
+            'price_unit': 100,
+            'prekes_zenklai_ids': [
+                (6, 0, [self.prekes_zenklas_6.id, self.prekes_zenklas_8.id])]
+        })
+
+        sale_order_line_5 = self.env['sale.order.line'].create({
+            'order_id': self.sale_order.id,
+            'product_id': self.product_1.id,
+            'product_uom_qty': 1,
+            'price_unit': 100,
+            'prekes_zenklai_ids': [
+                (6, 0, [self.prekes_zenklas_1.id, self.prekes_zenklas_2.id])]
+        })
+
+        sale_order_line_6 = self.env['sale.order.line'].create({
+            'order_id': self.sale_order.id,
+            'product_id': self.product_2.id,
+            'product_uom_qty': 1,
+            'price_unit': 100,
+            'prekes_zenklai_ids': [
+                (6, 0, [self.prekes_zenklas_4.id, self.prekes_zenklas_6.id, self.prekes_zenklas_7.id])]
+        })
+
+
+        self.sale_order.state = 'sale'
+
+        invoices = self.sale_order._create_invoices()
+
+        self.assertEqual(len(invoices), 1, 'Expected one invoice to be created')
+        self.assertEqual(len(invoices.invoice_line_ids), 6, 'Expected 6 Invoice Lines')
+
+        self.assertEqual(str(invoices.narration),
+                         '<p>Product Code 1 - (Zenklas 1, Zenklas 2, Zenklas 3)\
+                         <br><br>\
+                         Product Code 3 - (Zenklas 1, Zenklas 4, Zenklas 5)\
+                         <br><br>\
+                         Product Code 4 - (Zenklas 6, Zenklas 8)\
+                         <br><br>\
+                         Product Code 2 - (Zenklas 4, Zenklas 6, Zenklas 7)</p>',
+                         'Expected narration value added to Invoice is "<p>Product Code 1 - (Zenklas 1, Zenklas 2, Zenklas 3)\
+                         <br><br>\
+                         Product Code 3 - (Zenklas 1, Zenklas 4, Zenklas 5)\
+                         <br><br>\
+                         Product Code 4 - (Zenklas 6, Zenklas 8)\
+                         <br><br>\
+                         Product Code 2 - (Zenklas 4, Zenklas 6, Zenklas 7)</p>"')
+
+        _logger.info("Test test_create_invoices_6 passed.")
 
 # Note: Running tests
 # ./odoo-bin -c /home/marty1544/Odoo/16.0/.odoorc -u prekes_zenklai --test-enable
