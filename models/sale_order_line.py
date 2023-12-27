@@ -5,6 +5,7 @@ from odoo import models, fields
 class PrekesZenklasOnSaleOrderLine(models.Model):
     """
     Inheriting Sale Order Line model and adding new Many2many field to it.
+    Created 'sale_order_line_prekes_zenklas_rel' relation table.
     """
     _inherit = 'sale.order.line'
 
