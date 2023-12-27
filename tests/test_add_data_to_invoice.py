@@ -12,57 +12,40 @@ class TestSaleOrderInheritance(TransactionCase):
     def setUp(self):
         super(TestSaleOrderInheritance, self).setUp()
         self.sale_order = self.env['sale.order'].create({'partner_id': self.env.ref('base.res_partner_1').id})
-        self.product_1 = self.env['product.product'].create({
-            'name': 'Test Product 1',
-            'type': 'consu',
-            'invoice_policy': 'order',
-            'sale_ok': True,
-            'default_code': 'Product Code 1',
-        })
-        self.product_2 = self.env['product.product'].create({
-            'name': 'Test Product 2',
-            'type': 'consu',
-            'invoice_policy': 'order',
-            'sale_ok': True,
-            'default_code': 'Product Code 2',
-        })
-        self.product_3 = self.env['product.product'].create({
-            'name': 'Test Product 3',
-            'type': 'consu',
-            'invoice_policy': 'order',
-            'sale_ok': True,
-            'default_code': 'Product Code 3',
-        })
-        self.product_4 = self.env['product.product'].create({
-            'name': 'Test Product 4',
-            'type': 'consu',
-            'invoice_policy': 'order',
-            'sale_ok': True,
-            'default_code': 'Product Code 3',
-        })
+        self.products = []
+        self.prekes_zenklai = []
 
-        self.prekes_zenklas_1 = self.env['prekes.zenklas'].create({'name': 'Zenklas 1'})
-        self.prekes_zenklas_2 = self.env['prekes.zenklas'].create({'name': 'Zenklas 2'})
-        self.prekes_zenklas_3 = self.env['prekes.zenklas'].create({'name': 'Zenklas 3'})
-        self.prekes_zenklas_4 = self.env['prekes.zenklas'].create({'name': 'Zenklas 4'})
-        self.prekes_zenklas_5 = self.env['prekes.zenklas'].create({'name': 'Zenklas 5'})
-        self.prekes_zenklas_6 = self.env['prekes.zenklas'].create({'name': 'Zenklas 6'})
-        self.prekes_zenklas_7 = self.env['prekes.zenklas'].create({'name': 'Zenklas 7'})
-        self.prekes_zenklas_8 = self.env['prekes.zenklas'].create({'name': 'Zenklas 8'})
+        # Creating 8 Products and 8 Prekes Zenklas objects.
+        for i in range(1, 9):
+            product = self.env['product.product'].create({
+                'name': f'Test Product {i}',
+                'type': 'consu',
+                'invoice_policy': 'order',
+                'sale_ok': True,
+                'default_code': f'Product Code {i}',
+            })
+            self.products.append(product)
+
+            prekes_zenklas = self.env['prekes.zenklas'].create({'name': f'Zenklas {i}'})
+            self.prekes_zenklai.append(prekes_zenklas)
+
+    def create_sale_order_line(self, product, qty=1, price=100, prekes_zenklai_ids=None):
+        return self.env['sale.order.line'].create({
+            'order_id': self.sale_order.id,
+            'product_id': product.id,
+            'product_uom_qty': qty,
+            'price_unit': price,
+            'prekes_zenklai_ids': [(6, 0, prekes_zenklai_ids)] if prekes_zenklai_ids else False,
+        })
 
     def test_create_invoices_1(self):
         """
         Test _create_invoices.
-        Creating Invoice with one Invoice Line, from Sale Order with one Sale Order Line, with no prekes_zenklas
-        assigned.
+        Creating Invoice with one Invoice Line, from Sale Order with one Sale Order Line.
+        Added: 1 product, no prekes_zenklas assigned.
         """
-        sale_order_line = self.env['sale.order.line'].create({
-            'order_id': self.sale_order.id,
-            'product_id': self.product_1.id,
-            'product_uom_qty': 1,
-            'price_unit': 100,
-            # No prekes_zenklas added to this Sale Order Line
-        })
+
+        self.create_sale_order_line(self.products[0])
 
         self.sale_order.state = 'sale'
 
@@ -82,16 +65,11 @@ class TestSaleOrderInheritance(TransactionCase):
     def test_create_invoices_2(self):
         """
         Test _create_invoices.
-        Creating Invoice with 1 Invoice Line, from Sale Order with 1 Sale Order Line, with 1 prekes_zenklas
-        assigned.
+        Creating Invoice with 1 Invoice Line, from Sale Order with 1 Sale Order Line.
+        Added: 1 product, 1 prekes_zenklas
         """
-        sale_order_line = self.env['sale.order.line'].create({
-            'order_id': self.sale_order.id,
-            'product_id': self.product_1.id,
-            'product_uom_qty': 1,
-            'price_unit': 100,
-            'prekes_zenklai_ids': [(6, 0, [self.prekes_zenklas_1.id])]
-        })
+
+        self.create_sale_order_line(self.products[0], prekes_zenklai_ids=[self.prekes_zenklai[0].id])
 
         self.sale_order.state = 'sale'
 
@@ -111,23 +89,12 @@ class TestSaleOrderInheritance(TransactionCase):
     def test_create_invoices_3(self):
         """
         Test _create_invoices.
-        Creating Invoice with 2 Invoice Lines, from Sale Order with 2 Sale Order Lines. 2 different products assigned.
-        prekes_zenklas assigned just to one Invoice Line.
+        Creating Invoice with 2 Invoice Lines, from Sale Order with 2 Sale Order Lines.
+        Added: 2 different products, prekes_zenklas assigned just to second Invoice Line.
         """
-        sale_order_line_1 = self.env['sale.order.line'].create({
-            'order_id': self.sale_order.id,
-            'product_id': self.product_1.id,
-            'product_uom_qty': 1,
-            'price_unit': 100,
-            # prekes_zenklas is not assigned to prekes_zenklai_ids for this Sale Order Line
-        })
-        sale_order_line_2 = self.env['sale.order.line'].create({
-            'order_id': self.sale_order.id,
-            'product_id': self.product_2.id,
-            'product_uom_qty': 1,
-            'price_unit': 100,
-            'prekes_zenklai_ids': [(6, 0, [self.prekes_zenklas_2.id])]
-        })
+
+        self.create_sale_order_line(self.products[0])
+        self.create_sale_order_line(self.products[1], prekes_zenklai_ids=[self.prekes_zenklai[1].id])
 
         self.sale_order.state = 'sale'
 
@@ -147,23 +114,12 @@ class TestSaleOrderInheritance(TransactionCase):
     def test_create_invoices_4(self):
         """
         Test _create_invoices.
-        Creating Invoice with 2 Invoice Lines, from Sale Order with 2 Sale Order Lines. 2 different products assigned.
-        1 prekes_zenklas assigned to each Invoice Line.
+        Creating Invoice with 2 Invoice Lines, from Sale Order with 2 Sale Order Lines.
+        Added: 2 different products, 2 prekes_zenklas (1 to each Invoice Line)
         """
-        sale_order_line_1 = self.env['sale.order.line'].create({
-            'order_id': self.sale_order.id,
-            'product_id': self.product_1.id,
-            'product_uom_qty': 1,
-            'price_unit': 100,
-            'prekes_zenklai_ids': [(6, 0, [self.prekes_zenklas_1.id])]
-        })
-        sale_order_line_2 = self.env['sale.order.line'].create({
-            'order_id': self.sale_order.id,
-            'product_id': self.product_2.id,
-            'product_uom_qty': 1,
-            'price_unit': 100,
-            'prekes_zenklai_ids': [(6, 0, [self.prekes_zenklas_2.id])]
-        })
+
+        self.create_sale_order_line(self.products[0], prekes_zenklai_ids=[self.prekes_zenklai[0].id])
+        self.create_sale_order_line(self.products[1], prekes_zenklai_ids=[self.prekes_zenklai[1].id])
 
         self.sale_order.state = 'sale'
 
@@ -191,44 +147,32 @@ class TestSaleOrderInheritance(TransactionCase):
     def test_create_invoices_5(self):
         """
         Test _create_invoices.
-        Creating Invoice with 3 Invoice Lines, from Sale Order with 3 Sale Order Lines. 2 different products assigned.
-        Invoice Line #1 and Invoice Line #2 contain the same product, but prekes_zenklai_ids contain different brand
-        names. Invoice Line #2, on prekes_zenklai_ids field contain 8 different brand names.
+        Creating Invoice with 3 Invoice Lines, from Sale Order with 3 Sale Order Lines.
+        Added: 2 different products. Invoice Line #1 and Invoice Line #3 contain the same product, but it's
+        prekes_zenklai_ids contain different brand ames. Invoice Line #2, on prekes_zenklai_ids field contain 8
+        different brand names.
         """
-        sale_order_line_1 = self.env['sale.order.line'].create({
-            'order_id': self.sale_order.id,
-            'product_id': self.product_1.id,
-            'product_uom_qty': 1,
-            'price_unit': 100,
-            'prekes_zenklai_ids': [
-                (6, 0, [self.prekes_zenklas_1.id, self.prekes_zenklas_2.id, self.prekes_zenklas_3.id])]
-        })
-        sale_order_line_2 = self.env['sale.order.line'].create({
-            'order_id': self.sale_order.id,
-            'product_id': self.product_2.id,
-            'product_uom_qty': 1,
-            'price_unit': 100,
-            'prekes_zenklai_ids': [(6, 0,
-                                    [
-                                        self.prekes_zenklas_1.id,
-                                        self.prekes_zenklas_2.id,
-                                        self.prekes_zenklas_3.id,
-                                        self.prekes_zenklas_4.id,
-                                        self.prekes_zenklas_5.id,
-                                        self.prekes_zenklas_6.id,
-                                        self.prekes_zenklas_7.id,
-                                        self.prekes_zenklas_8.id,
-                                    ])]
-        })
-        sale_order_line_3 = self.env['sale.order.line'].create({
-            'order_id': self.sale_order.id,
-            'product_id': self.product_1.id,
-            'product_uom_qty': 1,
-            'price_unit': 100,
-            'prekes_zenklai_ids': [(6, 0, [
-                self.prekes_zenklas_4.id, self.prekes_zenklas_5.id, self.prekes_zenklas_6.id
-            ])]
-        })
+
+        self.create_sale_order_line(self.products[0],
+                                    prekes_zenklai_ids=[self.prekes_zenklai[0].id,
+                                                        self.prekes_zenklai[1].id,
+                                                        self.prekes_zenklai[2].id
+                                                        ])
+        self.create_sale_order_line(self.products[1],
+                                    prekes_zenklai_ids=[self.prekes_zenklai[0].id,
+                                                        self.prekes_zenklai[1].id,
+                                                        self.prekes_zenklai[2].id,
+                                                        self.prekes_zenklai[3].id,
+                                                        self.prekes_zenklai[4].id,
+                                                        self.prekes_zenklai[5].id,
+                                                        self.prekes_zenklai[6].id,
+                                                        self.prekes_zenklai[7].id
+                                                        ])
+        self.create_sale_order_line(self.products[0],
+                                    prekes_zenklai_ids=[self.prekes_zenklai[3].id,
+                                                        self.prekes_zenklai[4].id,
+                                                        self.prekes_zenklai[5].id
+                                                        ])
 
         self.sale_order.state = 'sale'
 
@@ -308,58 +252,30 @@ class TestSaleOrderInheritance(TransactionCase):
         "
         """
 
-        sale_order_line_1 = self.env['sale.order.line'].create({
-            'order_id': self.sale_order.id,
-            'product_id': self.product_1.id,
-            'product_uom_qty': 1,
-            'price_unit': 100,
-            'prekes_zenklai_ids': [
-                (6, 0, [self.prekes_zenklas_1.id, self.prekes_zenklas_2.id, self.prekes_zenklas_3.id])]
-        })
-
-        sale_order_line_2 = self.env['sale.order.line'].create({
-            'order_id': self.sale_order.id,
-            'product_id': self.product_2.id,
-            'product_uom_qty': 1,
-            'price_unit': 100,
-        })
-
-        sale_order_line_3 = self.env['sale.order.line'].create({
-            'order_id': self.sale_order.id,
-            'product_id': self.product_3.id,
-            'product_uom_qty': 1,
-            'price_unit': 100,
-            'prekes_zenklai_ids': [
-                (6, 0, [self.prekes_zenklas_1.id, self.prekes_zenklas_4.id, self.prekes_zenklas_5.id])]
-        })
-
-        sale_order_line_4 = self.env['sale.order.line'].create({
-            'order_id': self.sale_order.id,
-            'product_id': self.product_4.id,
-            'product_uom_qty': 1,
-            'price_unit': 100,
-            'prekes_zenklai_ids': [
-                (6, 0, [self.prekes_zenklas_6.id, self.prekes_zenklas_8.id])]
-        })
-
-        sale_order_line_5 = self.env['sale.order.line'].create({
-            'order_id': self.sale_order.id,
-            'product_id': self.product_1.id,
-            'product_uom_qty': 1,
-            'price_unit': 100,
-            'prekes_zenklai_ids': [
-                (6, 0, [self.prekes_zenklas_1.id, self.prekes_zenklas_2.id])]
-        })
-
-        sale_order_line_6 = self.env['sale.order.line'].create({
-            'order_id': self.sale_order.id,
-            'product_id': self.product_2.id,
-            'product_uom_qty': 1,
-            'price_unit': 100,
-            'prekes_zenklai_ids': [
-                (6, 0, [self.prekes_zenklas_4.id, self.prekes_zenklas_6.id, self.prekes_zenklas_7.id])]
-        })
-
+        self.create_sale_order_line(self.products[0],
+                                    prekes_zenklai_ids=[self.prekes_zenklai[0].id,
+                                                        self.prekes_zenklai[1].id,
+                                                        self.prekes_zenklai[2].id
+                                                        ])
+        self.create_sale_order_line(self.products[1])
+        self.create_sale_order_line(self.products[2],
+                                    prekes_zenklai_ids=[self.prekes_zenklai[0].id,
+                                                        self.prekes_zenklai[3].id,
+                                                        self.prekes_zenklai[4].id
+                                                        ])
+        self.create_sale_order_line(self.products[3],
+                                    prekes_zenklai_ids=[self.prekes_zenklai[5].id,
+                                                        self.prekes_zenklai[7].id
+                                                        ])
+        self.create_sale_order_line(self.products[0],
+                                    prekes_zenklai_ids=[self.prekes_zenklai[0].id,
+                                                        self.prekes_zenklai[1].id
+                                                        ])
+        self.create_sale_order_line(self.products[1],
+                                    prekes_zenklai_ids=[self.prekes_zenklai[3].id,
+                                                        self.prekes_zenklai[5].id,
+                                                        self.prekes_zenklai[6].id
+                                                        ])
 
         self.sale_order.state = 'sale'
 
@@ -367,22 +283,9 @@ class TestSaleOrderInheritance(TransactionCase):
 
         self.assertEqual(len(invoices), 1, 'Expected one invoice to be created')
         self.assertEqual(len(invoices.invoice_line_ids), 6, 'Expected 6 Invoice Lines')
-
         self.assertEqual(str(invoices.narration),
-                         '<p>Product Code 1 - (Zenklas 1, Zenklas 2, Zenklas 3)\
-                         <br><br>\
-                         Product Code 3 - (Zenklas 1, Zenklas 4, Zenklas 5)\
-                         <br><br>\
-                         Product Code 4 - (Zenklas 6, Zenklas 8)\
-                         <br><br>\
-                         Product Code 2 - (Zenklas 4, Zenklas 6, Zenklas 7)</p>',
-                         'Expected narration value added to Invoice is "<p>Product Code 1 - (Zenklas 1, Zenklas 2, Zenklas 3)\
-                         <br><br>\
-                         Product Code 3 - (Zenklas 1, Zenklas 4, Zenklas 5)\
-                         <br><br>\
-                         Product Code 4 - (Zenklas 6, Zenklas 8)\
-                         <br><br>\
-                         Product Code 2 - (Zenklas 4, Zenklas 6, Zenklas 7)</p>"')
+                         '<p>Product Code 1 - (Zenklas 1, Zenklas 2, Zenklas 3)<br><br>Product Code 3 - (Zenklas 1, Zenklas 4, Zenklas 5)<br><br>Product Code 4 - (Zenklas 6, Zenklas 8)<br><br>Product Code 2 - (Zenklas 4, Zenklas 6, Zenklas 7)</p>',
+                         'Expected narration value added to Invoice is "<p>Product Code 1 - (Zenklas 1, Zenklas 2, Zenklas 3)<br><br>Product Code 3 - (Zenklas 1, Zenklas 4, Zenklas 5)<br><br>Product Code 4 - (Zenklas 6, Zenklas 8)<br><br>Product Code 2 - (Zenklas 4, Zenklas 6, Zenklas 7)</p>"')
 
         _logger.info("Test test_create_invoices_6 passed.")
 
